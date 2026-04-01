@@ -1,75 +1,105 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, AlertCircle } from 'lucide-react';
-import './Blog.css'; // Reusing design tokens
+import { Lock, Mail, AlertCircle, ArrowRight } from 'lucide-react';
+import './AdminDashboard.css';
 
 const AdminLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   const handleLogin = (e) => {
     e.preventDefault();
-    if (email === 'admin@gmail.com' && password === 'raju@1234') {
-      localStorage.setItem('isAdminAuthenticated', 'true');
-      navigate('/admin');
-    } else {
-      setError('Invalid credentials. Please try again.');
-    }
+    setIsLoading(true);
+    setError('');
+
+    // Simulate a small delay for premium feel
+    setTimeout(() => {
+      if (email === 'admin@gmail.com' && password === 'raju@1234') {
+        localStorage.setItem('isAdminAuthenticated', 'true');
+        navigate('/admin');
+      } else {
+        setError('Invalid credentials. Please try again.');
+        setIsLoading(false);
+      }
+    }, 800);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-transparent section-padding">
-      <div className="w-full max-w-md">
-        <div className="glass-panel p-10 text-center">
-          <div className="w-20 h-20 bg-brand-lime/10 rounded-full flex items-center justify-center mx-auto mb-6">
-            <Lock className="text-brand-lime" size={32} />
+    <div className="adm-root adm-login-container min-h-screen">
+      <div className="adm-login-card animate-fade-in">
+        {/* Left Side: Brand & Identity */}
+        <div className="adm-login-brand">
+          <div className="adm-brand-glow"></div>
+          <div className="adm-login-icon-wrapper">
+            <Lock size={42} strokeWidth={2.5} />
           </div>
-          
-          <h1 className="heading-md mb-2">Admin Portal</h1>
-          <p className="text-muted mb-8">Please sign in to manage Magnus Corps.</p>
+          <h1 className="adm-login-title">Admin Portal</h1>
+          <p className="adm-login-subtitle">Secure access to Magnus Corps management system.</p>
+        </div>
 
-          <form onSubmit={handleLogin} className="text-left">
-            <div className="flex flex-col gap-2 mb-6">
-              <label className="text-sm font-bold text-muted px-1">Email Address</label>
-              <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={18} />
+        {/* Right Side: Authentication Form */}
+        <div className="adm-login-form-area">
+          <form onSubmit={handleLogin}>
+            <div className="mb-8">
+              <h2 className="text-2xl font-bold mb-2">Welcome Back</h2>
+              <p className="text-muted text-sm">Please enter your credentials to unlock the dashboard.</p>
+            </div>
+
+            <div className="adm-input-group">
+              <label className="adm-input-label">Email Address</label>
+              <div className="adm-input-wrapper">
+                <Mail className="adm-input-icon" size={20} />
                 <input 
                   type="email" 
-                  className="form-input pl-12" 
+                  className="adm-login-input" 
                   placeholder="admin@gmail.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   required 
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 mb-8">
-              <label className="text-sm font-bold text-muted px-1">Password</label>
-              <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-muted" size={18} />
+            <div className="adm-input-group">
+              <label className="adm-input-label">Password</label>
+              <div className="adm-input-wrapper">
+                <Lock className="adm-input-icon" size={20} />
                 <input 
                   type="password" 
-                  className="form-input pl-12" 
+                  className="adm-login-input" 
                   placeholder="••••••••"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required 
+                  disabled={isLoading}
                 />
               </div>
             </div>
 
             {error && (
-              <div className="flex items-center gap-2 text-red-500 text-sm mb-6 px-1">
+              <div className="flex items-center gap-2 text-red-500 text-sm mb-6 px-1 animate-fade-in">
                 <AlertCircle size={16} />
                 <span>{error}</span>
               </div>
             )}
 
-            <button type="submit" className="btn btn-primary w-full py-4 text-lg">
-              Unlock Dashboard
+            <button 
+              type="submit" 
+              className={`adm-login-btn ${isLoading ? 'opacity-70' : ''}`}
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <div className="adm-spinner" style={{width: '24px', height: '24px', borderWidth: '2px'}}></div>
+              ) : (
+                <>
+                  Unlock Dashboard
+                  <ArrowRight size={20} />
+                </>
+              )}
             </button>
           </form>
         </div>
@@ -79,3 +109,4 @@ const AdminLogin = () => {
 };
 
 export default AdminLogin;
+

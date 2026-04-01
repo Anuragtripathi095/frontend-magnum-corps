@@ -1,17 +1,26 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Typewriter } from 'react-simple-typewriter';
 import { Link } from 'react-router-dom';
 import { useScrollAnim, useStaggeredScrollAnim } from '../hooks/useScrollAnim';
 import { 
-  ArrowRight, CheckCircle2, TrendingUp, Presentation, Users, Rss, 
+  ArrowRight, ArrowUpRight, CheckCircle2, TrendingUp, Presentation, Users, Rss, 
   Target, PenTool, Layout, MonitorSmartphone, Share2, Search,
-  AlertCircle, ChevronRight, Star, X, Play, User, Mail, Phone, Tag, MessageSquare, Send
+  AlertCircle, ChevronLeft, ChevronRight, Star, X, Play, User, Mail, Phone, Tag, MessageSquare, Send
 } from 'lucide-react';
 import './Home.css';
 import './Contact.css'; // Reuse form styles
 import { Reveal, StaggerContainer, TiltCard, Parallax } from '../components/MotionWrapper';
 import { motion } from 'framer-motion';
+import MarqueeModule from "react-fast-marquee";
+const Marquee = MarqueeModule.default || MarqueeModule;
+import yashikaImg from '../assets/yashika_tour.png';
 import API_URL from '../config/api';
+
+const PROJECT_KEYWORDS = [
+  'ELITE PERFORMANCE', 'ROI-DRIVEN', 'STRATEGY FIRST', 'MARKET DOMINANCE',
+  'CLARITY OVER NOISE', 'PREDICTABLE GROWTH', 'FOUNDER-LEVEL EXECUTION'
+];
 
 const TypewriterText = () => (
   <>
@@ -28,6 +37,7 @@ const TypewriterText = () => (
 );
 
 const Home = () => {
+  const navigate = useNavigate();
   // Reveal Observers
   // Reveal Observers (Unused, migrating to Framer Motion)
   // const heroRef = useStaggeredScrollAnim();
@@ -36,9 +46,94 @@ const Home = () => {
   // Video Modal State
   const [isVideoOpen, setIsVideoOpen] = useState(false);
 
+  // Carousel Pause State
+  const [isPausedLeft, setIsPausedLeft] = useState(false);
+  const [isPausedRight, setIsPausedRight] = useState(false);
+  const [isPausedBrand, setIsPausedBrand] = useState(false);
+
   // Contact Form State
   const [formData, setFormData] = useState({ name: '', email: '', phone: '', subject: '', message: '' });
   const [status, setStatus] = useState({ state: 'idle', message: '' });
+
+  // Blogs State
+  const [blogs, setBlogs] = useState([]);
+  const [blogsLoading, setBlogsLoading] = useState(true);
+  const [currentPage, setCurrentPage] = useState(1);
+  const blogsPerPage = 3;
+
+  // FAQ State
+  const [faqs, setFaqs] = useState([]);
+  const [faqLoading, setFaqLoading] = useState(true);
+  const [activeFaq, setActiveFaq] = useState(null);
+
+  // Projects State
+  const [projects, setProjects] = useState([]);
+  const projectScrollRef = useCallback(node => {
+    if (node !== null) {
+      // Logic for auto-scroll could go here if needed, 
+      // but for now we'll focus on manual buttons as requested.
+    }
+  }, []);
+  const scrollRef = useRef(null);
+
+  const scrollProjects = (direction) => {
+    if (scrollRef.current) {
+      const scrollAmount = window.innerWidth < 768 ? 330 : 420; // Card width + gap
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Fetch blogs on component mount
+  useEffect(() => {
+    const fetchBlogs = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/blogs`);
+        const data = await response.json();
+        setBlogs(data);
+      } catch (error) {
+        console.error('Error fetching blogs:', error);
+      } finally {
+        setBlogsLoading(false);
+      }
+    };
+
+    const fetchFaqs = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/faqs`);
+        const data = await response.json();
+        setFaqs(data.filter(f => f.status === 'Active'));
+      } catch (error) {
+        console.error('Error fetching FAQs:', error);
+      } finally {
+        setFaqLoading(false);
+      }
+    };
+
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/projects`);
+        const data = await response.json();
+        setProjects(data);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
+    };
+
+    fetchBlogs();
+    fetchFaqs();
+    fetchProjects();
+  }, []);
+
+  // Pagination Logic
+  const indexOfLastBlog = currentPage * blogsPerPage;
+  const indexOfFirstBlog = indexOfLastBlog - blogsPerPage;
+  const currentBlogs = blogs.slice(indexOfFirstBlog, indexOfLastBlog);
+  const totalPages = Math.ceil(blogs.length / blogsPerPage);
+
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
   
@@ -159,8 +254,14 @@ const Home = () => {
       </section>
 
       {/* INFINITE MARQUEE SECTION */}
-      <div className="brand-marquee">
-        <div className="marquee-container">
+      <div 
+        className="brand-marquee" 
+        onClick={() => setIsPausedBrand(!isPausedBrand)}
+        onMouseEnter={() => setIsPausedBrand(true)}
+        onMouseLeave={() => setIsPausedBrand(false)}
+        style={{ cursor: 'pointer' }}
+      >
+        <div className={`marquee-container ${isPausedBrand ? 'paused' : ''}`}>
           {[...Array(4)].map((_, i) => (
             <div key={i} className="marquee-text">
               <span>Social Media Marketing</span> <b>*</b> 
@@ -514,10 +615,11 @@ const Home = () => {
         </Reveal>
         
         <div className="testimonial-ticker-container">
-          <motion.div 
-            className="testimonial-track track-left"
-            animate={{ x: [0, -1000] }}
-            transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+          <div 
+            className={`testimonial-track track-left ${isPausedLeft ? 'paused' : ''}`}
+            onClick={() => setIsPausedLeft(!isPausedLeft)}
+            onMouseEnter={() => setIsPausedLeft(true)}
+            onMouseLeave={() => setIsPausedLeft(false)}
           >
             {[...Array(2)].fill([
               { name: 'Sarah Mitchell', title: 'Marketing Director' },
@@ -532,11 +634,12 @@ const Home = () => {
                 <p className="text-xs text-brand-lime uppercase tracking-widest mt-1">{t.title}</p>
               </div>
             ))}
-          </motion.div>
-          <motion.div 
-            className="testimonial-track track-right mt-12"
-            animate={{ x: [-1000, 0] }}
-            transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+          </div>
+          <div 
+            className={`testimonial-track track-right mt-12 ${isPausedRight ? 'paused' : ''}`}
+            onClick={() => setIsPausedRight(!isPausedRight)}
+            onMouseEnter={() => setIsPausedRight(true)}
+            onMouseLeave={() => setIsPausedRight(false)}
           >
             {[...Array(2)].fill([
               { name: 'Lisa Chen', title: 'Founder' },
@@ -551,7 +654,96 @@ const Home = () => {
                 <p className="text-xs text-brand-lime uppercase tracking-widest mt-1">{t.title}</p>
               </div>
             ))}
-          </motion.div>
+          </div>
+        </div>
+      </section>
+
+      {/* 7.1 IMPACT PORTFOLIO SECTION */}
+      <section className="section bg-[#050507] overflow-hidden" style={{ padding: '6rem 0' }}>
+        <div className="container">
+          <Reveal>
+            <div className="text-center mb-24">
+              <span className="text-brand-lime font-bold uppercase tracking-widest text-sm">* IMPACT PORTFOLIO—</span>
+              <h2 className="heading-xl mt-6">Proof of <span className="text-brand-lime">Performance</span></h2>
+              <p className="text-xl text-muted max-w-4xl mx-auto mt-6 leading-relaxed">We don't just build websites; we build systems that grow startups and established brands predictably.</p>
+            </div>
+          </Reveal>
+        </div>
+
+        {/* KEYWORD TICKER (Marquee) */}
+        <div className="project-keyword-ticker mb-16 overflow-hidden">
+          <div className="project-keyword-track flex items-center">
+            {[...PROJECT_KEYWORDS, ...PROJECT_KEYWORDS, ...PROJECT_KEYWORDS].map((word, i) => (
+              <div key={i} className="keyword-item whitespace-nowrap flex items-center">
+                <span>{word}</span>
+                <b>*</b>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* HORIZONTAL PROJECT CARDS - SMART CAROUSEL */}
+        <div className="project-slider-section-inner relative group">
+          <div className="project-carousel-wrapper relative mx-auto w-full max-w-[1400px]">
+            {/* NAVIGATION BUTTONS */}
+            <button
+              className="project-nav-btn left"
+              aria-label="Previous Project"
+              onClick={() => scrollProjects('left')}
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            <div
+              className="project-slider-container"
+              ref={scrollRef}
+            >
+              <div className="project-stepped-track">
+                {projects.map((project, i) => {
+                  let imgSrc = yashikaImg;
+                  if (project.imagePath) {
+                    if (project.imagePath.startsWith('/src/')) imgSrc = project.imagePath;
+                    else if (project.imagePath.startsWith('http')) imgSrc = project.imagePath;
+                    else imgSrc = `${API_URL}${project.imagePath}`;
+                  }
+
+                  return (
+                    <div
+                      key={i}
+                      className="project-portfolio-card"
+                    >
+                      <div className="project-card-inner">
+                        <div className="project-img-frame">
+                          <img src={imgSrc} alt={project.name} className="project-main-img" />
+                        </div>
+                        <div className="project-content-below text-center">
+                          <span className="text-brand-lime font-bold tracking-widest text-[10px] uppercase mb-2 block">{project.technology}</span>
+                          <h3 className="project-title-large">{project.name}</h3>
+                          <p className="text-white/50 text-sm mt-3 leading-relaxed line-clamp-2 px-4">{project.description}</p>
+                          <div className="mt-8">
+                            {project.link && (
+                              <a href={project.link} target="_blank" rel="noopener noreferrer" className="project-view-btn">
+                                <span>View Project</span>
+                                <ArrowRight size={16} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <button
+              className="project-nav-btn right"
+              aria-label="Next Project"
+              onClick={() => scrollProjects('right')}
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
         </div>
       </section>
 
@@ -565,29 +757,200 @@ const Home = () => {
             
             <StaggerContainer>
               <div className="grid md:grid-cols-3 gap-8 text-left">
-                 {[
-                   { img: '/images/hero_img.png', title: 'How to Write SEO Content That Ranks on Google (20 Proven Tips)' },
-                   { img: '/images/startup_growth.png', title: 'How to Optimize Content for Google AI Overviews (AI Search SEO Guide)' },
-                   { img: '/images/marketing_growth.png', title: 'How to Write Conversion-Focused Content That Meets Google’s E-E-A-T Standards' }
-                 ].map((news, i) => (
-                   <TiltCard key={i}>
-                     <Reveal delay={i * 0.1}>
-                       <Link to="#" className="news-card glass-panel group block h-full">
+                 {blogsLoading ? (
+                   [...Array(3)].map((_, i) => (
+                     <div key={i} className="news-card glass-panel h-80 animate-pulse bg-white/5 rounded-2xl"></div>
+                   ))
+                 ) : blogs.length > 0 ? (
+                   currentBlogs.map((post, i) => (
+                     <motion.div
+                       key={post._id}
+                       initial={{ opacity: 0, y: 30 }}
+                       whileInView={{ opacity: 1, y: 0 }}
+                       viewport={{ once: true }}
+                       transition={{ duration: 0.5, delay: i * 0.1, ease: [0.25, 1, 0.5, 1] }}
+                       whileHover={{ scale: 1.02, y: -6 }}
+                     >
+                       <Link 
+                         to={post._id ? `/blog/${post._id}` : "/blog"} 
+                         className="news-card glass-panel group block h-full no-underline"
+                         style={{ display: 'block', textDecoration: 'none' }}
+                       >
                          <div className="news-image-wrapper">
-                            <img src={news.img} alt={news.title} className="news-img" />
+                            <img 
+                              src={post.imagePath?.startsWith('http') ? post.imagePath : `${API_URL}${post.imagePath}`} 
+                              alt={post.title} 
+                              className="news-img" 
+                            />
                             <div className="news-overlay"></div>
                          </div>
-                         <div className="p-8">
-                            <h3 className="font-bold text-xl mb-6 group-hover:text-brand-lime transition">{news.title}</h3>
-                            <span className="text-brand-lime text-lg font-bold flex items-center gap-3 tracking-widest uppercase">read more <ArrowRight size={20} className="mt-[-2px] group-hover:ml-3 transition-all" /></span>
+                         <div className="p-8 flex flex-col h-full">
+                            <h3 className="font-bold text-2xl mb-8 group-hover:text-brand-lime transition line-clamp-2">
+                              {post.title}
+                            </h3>
+                            <div className="mt-auto">
+                              <div className="blog-read-more inline-flex items-center">
+                                Read More <ArrowUpRight size={20} className="ml-2" />
+                              </div>
+                            </div>
                          </div>
                        </Link>
-                     </Reveal>
-                   </TiltCard>
-                 ))}
+                     </motion.div>
+                   ))
+                 ) : (
+                   <p className="col-span-full text-muted text-center py-10">No blogs published yet. Contact us to learn more!</p>
+                 )}
               </div>
+
+              {/* Pagination UI */}
+              {!blogsLoading && blogs.length > blogsPerPage && (
+                <div className="blog-pagination mt-12 flex justify-center gap-4">
+                  <button 
+                    className={`page-arrow ${currentPage === 1 ? 'disabled' : ''}`}
+                    onClick={() => currentPage > 1 && paginate(currentPage - 1)}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft size={20} />
+                  </button>
+                  {[...Array(totalPages)].map((_, i) => (
+                    <button 
+                      key={i} 
+                      className={`page-number ${currentPage === i + 1 ? 'active' : ''}`}
+                      onClick={() => paginate(i + 1)}
+                    >
+                      {i + 1}
+                    </button>
+                  ))}
+                  <button 
+                    className={`page-arrow ${currentPage === totalPages ? 'disabled' : ''}`}
+                    onClick={() => currentPage < totalPages && paginate(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    <ChevronRight size={20} />
+                  </button>
+                </div>
+              )}
             </StaggerContainer>
          </div>
+      </section>
+
+      {/* 8.1 FAQ SECTION (Expertise Hub) */}
+      <section className="section faq-section-wrapper overflow-hidden">
+        <div className="container relative z-10">
+          <div className="faq-section-separator top"></div>
+          
+          <div className="text-center mb-20">
+            <Reveal>
+              <span className="text-brand-lime font-bold uppercase tracking-widest text-sm">* EXPERTISE HUB & FAQ—</span>
+              <h2 className="heading-xl mt-6">Still Have <span className="text-brand-lime">Questions?</span></h2>
+              <p className="text-xl text-muted max-w-4xl mx-auto mt-6 leading-relaxed">Everything you need to know about how Magnus Corps drives predictable growth for your startup.</p>
+            </Reveal>
+          </div>
+
+          <div className="max-w-7xl mx-auto">
+            {/* Above Text Animation & Visual Grid */}
+            <div className="magnus-grid cols-60-40 gap-16 align-center mb-24">
+              <Reveal delay={0.1}>
+                <div className="faq-context-above text-left">
+                  <h3 className="text-4xl font-bold mb-6"><span className="green-shimmer">Clarity is our first priority.</span></h3>
+                  <p className="text-xl text-muted leading-relaxed">
+                    We believe that marketing shouldn't be a black hole. Whether you're curious about our ROI timelines or our founder-level execution, we've broken down the most common questions from startups below.
+                  </p>
+                  <p className="text-lg text-muted mt-6 italic">
+                    "Still have questions? Our expertise hub is built to give founders the absolute transparent answers they deserve."
+                  </p>
+                </div>
+              </Reveal>
+
+              <div className="faq-column-right">
+                <Reveal delay={0.3}>
+                  <div className="faq-visual-wrapper">
+                    <div className="faq-img-glow"></div>
+                    <img 
+                      src="/assets/magnus-faq-visual.png" 
+                      alt="Magnus Corps FAQ Visual" 
+                      className="img-magnus-arch faq-main-img" 
+                    />
+                    <div className="faq-floating-badge glass-panel">
+                      <span className="text-brand-lime font-bold">99%</span>
+                      <p className="text-xs text-muted">Client Clarity</p>
+                    </div>
+                  </div>
+                </Reveal>
+              </div>
+            </div>
+
+            {/* Bridge Text Section */}
+            <Reveal delay={0.4}>
+              <div className="faq-bridge-text text-center mb-16">
+                <span className="text-brand-lime font-bold uppercase tracking-[0.3em] text-xs">* SELECT A TOPIC TO LEARN MORE—</span>
+              </div>
+            </Reveal>
+
+            {/* Centered FAQ Accordion */}
+            <div className="max-w-7xl mx-auto">
+              {faqLoading ? (
+                <div className="flex flex-col gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="faq-skeleton animate-pulse h-20 bg-white/5 rounded-2xl"></div>
+                  ))}
+                </div>
+              ) : faqs.length > 0 ? (
+                <div className="faq-scroll-box glass-panel-deep">
+                  <div className="faq-accordion">
+                    {faqs.map((faq, index) => (
+                      <motion.div 
+                        key={faq._id}
+                        className={`faq-item glass-panel ${activeFaq === index ? 'active' : ''}`}
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <button 
+                          className="faq-question" 
+                          onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                        >
+                          <span className="question-text">{faq.question}</span>
+                          <div className="faq-icon-wrapper">
+                            {activeFaq === index ? <X size={20} /> : <ChevronRight size={20} />}
+                          </div>
+                        </button>
+                        <motion.div 
+                          className="faq-answer"
+                          initial={false}
+                          animate={{ height: activeFaq === index ? 'auto' : 0, opacity: activeFaq === index ? 1 : 0 }}
+                          transition={{ duration: 0.3, ease: 'easeInOut' }}
+                          style={{ overflow: 'hidden' }}
+                        >
+                          <div className="faq-answer-inner pt-2 pb-8 px-8 text-muted leading-relaxed" dangerouslySetInnerHTML={{ __html: faq.answer }}>
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center text-muted">No FAQs available at the moment. Please contact us for more info.</p>
+              )}
+            </div>
+
+            {/* Below Text Animation */}
+            <Reveal delay={0.2}>
+              <div className="faq-context-below mt-20 text-center">
+                <div className="inline-block p-1 rounded-full bg-brand-lime/10 border border-brand-lime/20 mb-6 px-6">
+                  <span className="text-brand-lime font-bold text-sm tracking-widest uppercase">The Bottom Line →</span>
+                </div>
+                <h3 className="text-2xl font-bold mb-4">We build systems that <span className="text-brand-lime">grow predictably.</span></h3>
+                <p className="text-muted max-w-2xl mx-auto">
+                  If your question isn't listed here, it just means your business has specific needs that deserve a one-on-one strategy call. Let's find your fastest path to customers together.
+                </p>
+              </div>
+            </Reveal>
+          </div>
+          
+          <div className="faq-section-separator bottom mt-24"></div>
+        </div>
       </section>
 
       {/* 9. LET'S COLLABORATE (Premium Form) */}

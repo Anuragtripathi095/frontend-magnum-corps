@@ -1,12 +1,15 @@
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X, Phone, Grid } from 'lucide-react';
+import { Menu, X, Phone, Grid, Mail, MapPin } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import './Navbar.css';
 
 const Navbar = () => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const location = useLocation();
+
+  const toggleSidebar = () => setIsSidebarOpen(!isSidebarOpen);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -16,13 +19,14 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Close mobile menu on route change
+  // Close mobile menu and sidebar on route change
   useEffect(() => {
     setIsOpen(false);
+    setIsSidebarOpen(false);
   }, [location]);
 
   return (
-    <nav className={`navbar ${scrolled ? 'nav-scrolled' : ''}`}>
+    <nav className={`navbar ${scrolled ? 'nav-scrolled' : ''} ${isOpen ? 'nav-open' : ''}`}>
       <div className="container flex justify-between items-center">
         <Link to="/" className="brand flex items-center">
           <img src="/images/magnus_logo.png" alt="Magnus Corps Logo" style={{ height: '100px', width: 'auto', display: 'block' }} />
@@ -45,7 +49,7 @@ const Navbar = () => {
             <span className="cta-number">+91 8318176163</span>
           </a>
           
-          <button className="grid-menu-btn">
+          <button className="grid-menu-btn" onClick={toggleSidebar}>
             <Grid size={20} color="white" />
           </button>
         </div>
@@ -58,15 +62,65 @@ const Navbar = () => {
 
       {/* Mobile Menu */}
       {isOpen && (
-        <div className="mobile-menu flex flex-col items-center">
-          <Link to="/" className="mobile-nav-link">Home</Link>
-          <Link to="/about" className="mobile-nav-link">About</Link>
+        <div className="mobile-menu flex flex-col">
           <Link to="/services" className="mobile-nav-link">Services</Link>
-          <Link to="/contact" className="mobile-nav-link">Contact</Link>
+          <Link to="/about" className="mobile-nav-link">About Us</Link>
+          <Link to="/contact" className="mobile-nav-link">Contact Us</Link>
           <Link to="/blog" className="mobile-nav-link">Blog</Link>
-          <Link to="/contact" className="btn btn-primary mobile-btn" style={{ background: 'var(--color-brand-lime)', color: 'black', border: 'none' }}>Get a Proposal</Link>
         </div>
       )}
+      {/* Sidebar Popup */}
+      <div className={`nav-sidebar ${isSidebarOpen ? 'open' : ''}`}>
+        <div className="sidebar-glow-bg"></div>
+        <div className="sidebar-header">
+          <Link to="/" onClick={toggleSidebar}>
+            <img src="/images/magnus_logo.png" alt="Magnus Corps Logo" className="sidebar-logo" />
+          </Link>
+          <button className="sidebar-close" onClick={toggleSidebar}>
+            <X size={30} />
+          </button>
+        </div>
+
+        <div className="sidebar-content">
+          <div className="sidebar-welcome mb-8">
+            <span className="text-brand-lime font-bold uppercase tracking-widest text-xs">* MAGNUS CORPS HUB —</span>
+            <h2 className="text-3xl font-bold mt-2">Get in <span className="text-brand-lime">Touch</span></h2>
+            <p className="text-muted text-sm mt-3">Ready to build something predictable? Our team is available for direct support and strategy inquiries.</p>
+          </div>
+
+          <div className="sidebar-contact-container">
+            <a href="tel:+918318176163" className="sidebar-contact-card glass-panel-deep">
+              <div className="card-icon-box">
+                <Phone size={28} />
+              </div>
+              <div className="card-info">
+                <h3>Direct Line</h3>
+                <p>+91 8318176163</p>
+                <span className="card-label">Available 10AM - 8PM</span>
+              </div>
+            </a>
+
+            <a href="mailto:info@magnuscorps.com" className="sidebar-contact-card glass-panel-deep">
+              <div className="card-icon-box">
+                <Mail size={28} />
+              </div>
+              <div className="card-info">
+                <h3>Our Email</h3>
+                <p>info@magnuscorps.com</p>
+                <span className="card-label">Strategic Inquiries Only</span>
+              </div>
+            </a>
+          </div>
+        </div>
+
+        <div className="sidebar-footer">
+          <div className="sidebar-footer-divider"></div>
+          <p>© 2024 Magnus Corps. All rights reserved.</p>
+        </div>
+      </div>
+
+      {/* Sidebar Overlay */}
+      {isSidebarOpen && <div className="sidebar-overlay" onClick={toggleSidebar}></div>}
     </nav>
   );
 };

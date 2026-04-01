@@ -1,9 +1,23 @@
-import { Rss, Target, PenTool, Layout, MonitorSmartphone, Share2, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { 
+  Rss, Target, PenTool, Layout, MonitorSmartphone, Share2, 
+  CheckCircle2, ArrowRight, ChevronLeft, ChevronRight, X, 
+  Search, MessageSquare, Send, Star 
+} from 'lucide-react';
 import { Link } from 'react-router-dom';
+import MarqueeModule from "react-fast-marquee";
+const Marquee = MarqueeModule.default || MarqueeModule;
 import { Reveal, StaggerContainer, TiltCard } from '../components/MotionWrapper';
 import { motion } from 'framer-motion';
 import whyChooseImg from '../assets/why_choose_graphic.png';
+import yashikaImg from '../assets/yashika_tour.png';
+import API_URL from '../config/api';
 import './Services.css';
+
+const PROJECT_KEYWORDS = [
+  'ELITE PERFORMANCE', 'ROI-DRIVEN', 'STRATEGY FIRST', 'MARKET DOMINANCE',
+  'CLARITY OVER NOISE', 'PREDICTABLE GROWTH', 'FOUNDER-LEVEL EXECUTION'
+];
 
 const Services = () => {
   const services = [
@@ -14,6 +28,50 @@ const Services = () => {
     { title: 'Search Intelligence', desc: 'Beyond traditional SEO. We analyze real search behavior and competitor gaps.', icon: <Layout size={48} className="text-primary" /> },
     { title: 'Website Designing', desc: 'Fast, conversion-focused websites that explain your business clearly and build instant trust.', icon: <MonitorSmartphone size={48} className="text-primary" /> }
   ];
+
+  const [projects, setProjects] = useState([]);
+  const scrollRef = useRef(null);
+
+  const scrollProjects = (direction) => {
+    if (scrollRef.current) {
+      const scrollAmount = window.innerWidth < 768 ? 330 : 420; // Card width + gap
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  const [faqs, setFaqs] = useState([]);
+  const [faqLoading, setFaqLoading] = useState(true);
+  const [activeFaq, setActiveFaq] = useState(null);
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/projects`);
+        const data = await response.json();
+        setProjects(data);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
+    };
+
+    const fetchFaqs = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/faqs`);
+        const data = await response.json();
+        setFaqs(data.filter(f => f.status === 'Active'));
+      } catch (error) {
+        console.error('Error fetching FAQs:', error);
+      } finally {
+        setFaqLoading(false);
+      }
+    };
+
+    fetchProjects();
+    fetchFaqs();
+  }, []);
 
   return (
     <div className="services-page page-wrapper">
@@ -172,7 +230,206 @@ const Services = () => {
         </div>
       </section>
 
-      {/* 4. CTA SECTION */}
+      {/* 4. IMPACT PORTFOLIO SECTION */}
+      <section className="section bg-[#050507] overflow-hidden" style={{ padding: '6rem 0' }}>
+        <div className="container">
+          <Reveal>
+            <div className="text-center mb-24">
+              <span className="text-brand-lime font-bold uppercase tracking-widest text-sm">* IMPACT PORTFOLIO—</span>
+              <h2 className="heading-xl mt-6">Proof of <span className="text-brand-lime">Performance</span></h2>
+              <p className="text-xl text-muted max-w-4xl mx-auto mt-6 leading-relaxed">We don't just build websites; we build systems that grow startups and established brands predictably.</p>
+            </div>
+          </Reveal>
+        </div>
+
+        {/* KEYWORD TICKER (Marquee) */}
+        <div className="project-keyword-ticker mb-16 overflow-hidden">
+          <div className="project-keyword-track flex items-center">
+            {[...PROJECT_KEYWORDS, ...PROJECT_KEYWORDS, ...PROJECT_KEYWORDS].map((word, i) => (
+              <div key={i} className="keyword-item whitespace-nowrap flex items-center">
+                <span>{word}</span>
+                <b>*</b>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* HORIZONTAL PROJECT CARDS - SMART CAROUSEL */}
+        <div className="project-slider-section-inner relative group">
+          <div className="project-carousel-wrapper relative mx-auto w-full max-w-[1400px]">
+            {/* NAVIGATION BUTTONS */}
+            <button
+              className="project-nav-btn left"
+              aria-label="Previous Project"
+              onClick={() => scrollProjects('left')}
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            <div
+              className="project-slider-container"
+              ref={scrollRef}
+            >
+              <div className="project-stepped-track">
+                {projects.map((project, i) => {
+                  let imgSrc = yashikaImg;
+                  if (project.imagePath) {
+                    if (project.imagePath.startsWith('/src/')) imgSrc = project.imagePath;
+                    else if (project.imagePath.startsWith('http')) imgSrc = project.imagePath;
+                    else imgSrc = `${API_URL}${project.imagePath}`;
+                  }
+
+                  return (
+                    <div key={i} className="project-portfolio-card">
+                      <div className="project-card-inner">
+                        <div className="project-img-frame">
+                          <img src={imgSrc} alt={project.name} className="project-main-img" />
+                        </div>
+                        <div className="project-content-below text-center">
+                          <span className="text-brand-lime font-bold tracking-widest text-[10px] uppercase mb-2 block">{project.technology}</span>
+                          <h3 className="project-title-large">{project.name}</h3>
+                          <p className="text-white/50 text-sm mt-3 leading-relaxed line-clamp-2 px-4">{project.description}</p>
+                          <div className="mt-8">
+                            {project.link && (
+                              <a href={project.link} target="_blank" rel="noopener noreferrer" className="project-view-btn">
+                                <span>View Project</span>
+                                <ArrowRight size={16} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <button
+              className="project-nav-btn right"
+              aria-label="Next Project"
+              onClick={() => scrollProjects('right')}
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 5. FAQ SECTION (Expertise Hub) */}
+      <section className="section faq-section-wrapper overflow-hidden">
+        <div className="container relative z-10">
+          <div className="faq-section-separator top"></div>
+          
+          <div className="text-center mb-20">
+            <Reveal>
+              <span className="text-brand-lime font-bold uppercase tracking-widest text-sm">* EXPERTISE HUB & FAQ—</span>
+              <h2 className="heading-xl mt-6">Still Have <span className="text-brand-lime">Questions?</span></h2>
+              <p className="text-xl text-muted max-w-4xl mx-auto mt-6 leading-relaxed">Everything you need to know about how Magnus Corps drives predictable growth for your startup.</p>
+            </Reveal>
+          </div>
+
+          <div className="max-w-7xl mx-auto">
+            <div className="magnus-grid cols-60-40 gap-16 align-center mb-24">
+              <Reveal delay={0.1}>
+                <div className="faq-context-above text-left">
+                  <h3 className="text-4xl font-bold mb-6"><span className="green-shimmer">Clarity is our first priority.</span></h3>
+                  <p className="text-xl text-muted leading-relaxed">
+                    We believe that marketing shouldn't be a black hole. Whether you're curious about our ROI timelines or our founder-level execution, we've broken down the most common questions from startups below.
+                  </p>
+                  <p className="text-lg text-muted mt-6 italic">
+                    "Still have questions? Our expertise hub is built to give founders the absolute transparent answers they deserve."
+                  </p>
+                </div>
+              </Reveal>
+
+              <div className="faq-column-right">
+                <Reveal delay={0.3}>
+                  <div className="faq-visual-wrapper">
+                    <div className="faq-img-glow"></div>
+                    <img 
+                      src="/assets/magnus-faq-visual.png" 
+                      alt="Magnus Corps FAQ Visual" 
+                      className="img-magnus-arch faq-main-img" 
+                    />
+                    <div className="faq-floating-badge glass-panel">
+                      <span className="text-brand-lime font-bold">99%</span>
+                      <p className="text-xs text-muted">Client Clarity</p>
+                    </div>
+                  </div>
+                </Reveal>
+              </div>
+            </div>
+
+            <Reveal delay={0.4}>
+              <div className="faq-bridge-text text-center mb-16">
+                <span className="text-brand-lime font-bold uppercase tracking-[0.3em] text-xs">* SELECT A TOPIC TO LEARN MORE—</span>
+              </div>
+            </Reveal>
+
+            <div className="max-w-7xl mx-auto">
+              {faqLoading ? (
+                <div className="flex flex-col gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="faq-skeleton animate-pulse h-20 bg-white/5 rounded-2xl"></div>
+                  ))}
+                </div>
+              ) : (
+                <div className="faq-scroll-box glass-panel-deep">
+                  <div className="faq-accordion">
+                    {faqs.map((faq, index) => (
+                      <motion.div 
+                        key={faq._id}
+                        className={`faq-item glass-panel ${activeFaq === index ? 'active' : ''}`}
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <button 
+                          className="faq-question" 
+                          onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                        >
+                          <span className="question-text">{faq.question}</span>
+                          <div className="faq-icon-wrapper">
+                            {activeFaq === index ? <X size={20} /> : <ChevronRight size={20} />}
+                          </div>
+                        </button>
+                        <motion.div 
+                          className="faq-answer"
+                          initial={false}
+                          animate={{ height: activeFaq === index ? 'auto' : 0, opacity: activeFaq === index ? 1 : 0 }}
+                          transition={{ duration: 0.3, ease: 'easeInOut' }}
+                          style={{ overflow: 'hidden' }}
+                        >
+                          <div className="faq-answer-inner pt-2 pb-8 px-8 text-muted leading-relaxed" dangerouslySetInnerHTML={{ __html: faq.answer }}>
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <Reveal delay={0.2}>
+              <div className="faq-context-below mt-20 text-center">
+                <div className="inline-block p-1 rounded-full bg-brand-lime/10 border border-brand-lime/20 mb-6 px-6">
+                  <span className="text-brand-lime font-bold text-sm tracking-widest uppercase">The Bottom Line →</span>
+                </div>
+                <h3 className="text-2xl font-bold mb-4">We build systems that <span className="text-brand-lime">grow predictably.</span></h3>
+                <p className="text-muted max-w-2xl mx-auto">
+                  If your question isn't listed here, it just means your business has specific needs that deserve a one-on-one strategy call. Let's find your fastest path to customers together.
+                </p>
+              </div>
+            </Reveal>
+          </div>
+          
+          <div className="faq-section-separator bottom mt-24"></div>
+        </div>
+      </section>
+
+      {/* 6. CTA SECTION */}
       <section className="section text-center relative z-10" style={{ paddingTop: '4rem' }}>
         <div className="container">
           <motion.div

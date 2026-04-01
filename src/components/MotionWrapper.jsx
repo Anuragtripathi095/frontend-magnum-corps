@@ -1,5 +1,5 @@
 import { motion, useScroll, useTransform, useSpring, useMotionValue } from 'framer-motion';
-import { useRef } from 'react';
+import { useRef, useState, useEffect } from 'react';
 
 /**
  * Reusable wrapper for standard Magnus animations
@@ -62,16 +62,29 @@ export const TiltCard = ({ children, className = "" }) => {
 
 export const Parallax = ({ children, offset = 100 }) => {
   const ref = useRef(null);
-  const { scrollYProgress } = useScroll({
-    target: ref,
-    offset: ["start end", "end start"]
-  });
+  const { scrollY } = useScroll();
+  const [elemTop, setElemTop] = useState(0);
+  const [clientH, setClientH] = useState(0);
 
-  const yValue = useTransform(scrollYProgress, [0, 1], [-offset, offset]);
+  useEffect(() => {
+    const setValues = () => {
+      if (ref.current) {
+        setElemTop(ref.current.offsetTop);
+        setClientH(window.innerHeight);
+      }
+    };
+    setValues();
+    window.addEventListener('resize', setValues);
+    return () => window.removeEventListener('resize', setValues);
+  }, []);
+
+  const initial = elemTop - clientH;
+  const final = elemTop + offset;
+  const yValue = useTransform(scrollY, [initial, final], [-offset, offset]);
   const y = useSpring(yValue, { stiffness: 100, damping: 30 });
 
   return (
-    <motion.div ref={ref} style={{ y }}>
+    <motion.div ref={ref} style={{ y, position: 'relative' }}>
       {children}
     </motion.div>
   );

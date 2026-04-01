@@ -1,9 +1,8 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useNavigate, Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Save, Image as ImageIcon, X, Download, Eye } from 'lucide-react';
+import { ArrowLeft, Save, Image as ImageIcon, X, ExternalLink, Download, Eye } from 'lucide-react';
 import ReactQuill from 'react-quill-new';
 import 'react-quill-new/dist/quill.snow.css';
-import './Blog.css';
 import API_URL from '../config/api';
 
 // Custom Blot for embedded HTML
@@ -23,7 +22,9 @@ class HtmlEmbed extends BlockEmbed {
     return node.getAttribute('data-html');
   }
 }
-Quill.register(HtmlEmbed);
+if (!Quill.imports['formats/htmlembed']) {
+  Quill.register(HtmlEmbed);
+}
 
 // Register custom formats
 const Inline = Quill.import('blots/inline');
@@ -31,21 +32,20 @@ class CustomCode extends Inline {
   static blotName = 'customcode';
   static tagName = 'code';
 }
-Quill.register(CustomCode);
+if (!Quill.imports['formats/customcode']) {
+  Quill.register(CustomCode);
+}
 
-const BlogEditor = () => {
+const ProjectEditor = () => {
   const navigate = useNavigate();
   const quillRef = useRef(null);
   const [loading, setLoading] = useState(false);
   const [preview, setPreview] = useState(null);
-  const [sourceView, setSourceView] = useState(false);
-  const [sourceContent, setSourceContent] = useState('');
   const [formData, setFormData] = useState({
-    title: '',
-    category: 'SEO Strategy',
-    excerpt: '',
-    content: '',
-    author: 'Magnus Team',
+    name: '',
+    technology: '',
+    link: '',
+    description: '',
     image: null
   });
   const { id } = useParams();
@@ -53,9 +53,9 @@ const BlogEditor = () => {
 
   useEffect(() => {
     if (isEditMode) {
-      fetchBlogData();
+      fetchProjectData();
     }
-    
+
     // Add custom toolbar button labels
     const toolbar = document.querySelector('.ql-toolbar');
     if (toolbar) {
@@ -89,17 +89,16 @@ const BlogEditor = () => {
     }
   }, [id, isEditMode]);
 
-  const fetchBlogData = async () => {
+  const fetchProjectData = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/blogs/${id}`);
+      const res = await fetch(`${API_URL}/api/projects/${id}`);
       const data = await res.json();
       if (res.ok) {
         setFormData({
-          title: data.title,
-          category: data.category,
-          excerpt: data.excerpt,
-          content: data.content,
-          author: data.author || 'Magnus Team',
+          name: data.name,
+          technology: data.technology,
+          link: data.link || '',
+          description: data.description || '',
           image: null
         });
         if (data.imagePath) {
@@ -107,7 +106,7 @@ const BlogEditor = () => {
         }
       }
     } catch (err) {
-      console.error("Error fetching blog data:", err);
+      console.error("Error fetching project data:", err);
     }
   };
 
@@ -143,7 +142,8 @@ const BlogEditor = () => {
         const data = await res.json();
         const editor = quillRef.current.getEditor();
         const range = editor.getSelection();
-        editor.insertEmbed(range.index, 'image', data.url);
+        const imageUrl = data.url.startsWith('http') ? data.url : `${API_URL}${data.url}`;
+        editor.insertEmbed(range.index, 'image', imageUrl);
       } catch (err) {
         console.error("Upload failed:", err);
       }
@@ -157,7 +157,7 @@ const BlogEditor = () => {
     printWindow.document.write(`
       <html>
         <head>
-          <title>${formData.title}</title>
+          <title>${formData.name}</title>
           <style>
             body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; }
             h1, h2, h3 { color: #333; }
@@ -165,9 +165,8 @@ const BlogEditor = () => {
           </style>
         </head>
         <body>
-          <h1>${formData.title}</h1>
-          <p><strong>Author:</strong> ${formData.author}</p>
-          <p><strong>Category:</strong> ${formData.category}</p>
+          <h1>${formData.name}</h1>
+          <p><strong>Technology:</strong> ${formData.technology}</p>
           <div>${content}</div>
         </body>
       </html>
@@ -189,9 +188,8 @@ const BlogEditor = () => {
           </style>
         </head>
         <body>
-          <h1>${formData.title}</h1>
-          <p><strong>Author:</strong> ${formData.author}</p>
-          <p><strong>Category:</strong> ${formData.category}</p>
+          <h1>${formData.name}</h1>
+          <p><strong>Technology:</strong> ${formData.technology}</p>
           <div>${content}</div>
         </body>
       </html>
@@ -200,7 +198,7 @@ const BlogEditor = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${formData.title}.doc`;
+    link.download = `${formData.name}.doc`;
     link.click();
   };
 
@@ -212,7 +210,7 @@ const BlogEditor = () => {
       <html>
         <head>
           <meta charset="UTF-8">
-          <title>${formData.title}</title>
+          <title>${formData.name}</title>
           <style>
             body { font-family: Arial, sans-serif; max-width: 800px; margin: 40px auto; line-height: 1.6; }
             h1, h2, h3 { color: #333; }
@@ -220,10 +218,8 @@ const BlogEditor = () => {
           </style>
         </head>
         <body>
-          <h1>${formData.title}</h1>
-          <p><strong>Author:</strong> ${formData.author}</p>
-          <p><strong>Category:</strong> ${formData.category}</p>
-          <p><strong>Excerpt:</strong> ${formData.excerpt}</p>
+          <h1>${formData.name}</h1>
+          <p><strong>Technology:</strong> ${formData.technology}</p>
           <hr>
           <div>${content}</div>
         </body>
@@ -233,7 +229,7 @@ const BlogEditor = () => {
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${formData.title}.html`;
+    link.download = `${formData.name}.html`;
     link.click();
   };
 
@@ -322,17 +318,16 @@ const BlogEditor = () => {
     setLoading(true);
 
     const data = new FormData();
-    data.append('title', formData.title);
-    data.append('category', formData.category);
-    data.append('excerpt', formData.excerpt);
-    data.append('content', formData.content);
-    data.append('author', formData.author);
+    data.append('name', formData.name);
+    data.append('technology', formData.technology);
+    data.append('link', formData.link);
+    data.append('description', formData.description);
     if (formData.image) {
       data.append('image', formData.image);
     }
 
     try {
-      const url = isEditMode ? `${API_URL}/api/blogs/${id}` : `${API_URL}/api/blogs`;
+      const url = isEditMode ? `${API_URL}/api/projects/${id}` : `${API_URL}/api/projects`;
       const method = isEditMode ? 'PUT' : 'POST';
       
       const res = await fetch(url, {
@@ -340,10 +335,10 @@ const BlogEditor = () => {
         body: data
       });
       if (res.ok) {
-        alert(isEditMode ? "Blog Post Updated!" : "Blog Post Created!");
+        alert(isEditMode ? "Project Updated!" : "Project Created!");
         navigate('/admin');
       } else {
-        alert(isEditMode ? "Error updating blog." : "Error creating blog.");
+        alert(isEditMode ? "Error updating project." : "Error creating project.");
       }
     } catch (err) {
       alert("Error submitting form");
@@ -352,49 +347,76 @@ const BlogEditor = () => {
   };
 
   return (
-    <div className="admin-page section" style={{ paddingTop: '60px', minHeight: '100vh', background: 'transparent' }}>
+    <div className="admin-page section" style={{ paddingTop: '80px', minHeight: '100vh', background: 'transparent' }}>
       <div className="container max-w-[1400px]">
-        <Link to="/admin" className="flex items-center gap-2 text-muted hover:text-white transition mb-6">
+        <Link to="/admin" className="flex items-center gap-2 text-muted hover:text-white transition mb-8">
           <ArrowLeft size={18} /> Back to Dashboard
         </Link>
         
-        <h1 className="heading-lg mb-8">{isEditMode ? 'Edit Blog Post' : 'Advanced Blog Editor'}</h1>
+        <div className="flex justify-between items-center mb-8">
+          <h1 className="heading-md">{isEditMode ? 'Edit Project' : 'Advanced Project Editor'}</h1>
+          {isEditMode && formData.link && (
+            <a href={formData.link} target="_blank" rel="noopener noreferrer" className="btn btn-outline flex items-center gap-2" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+              <ExternalLink size={16} /> View Project
+            </a>
+          )}
+        </div>
 
-        <form onSubmit={handleSubmit} className="glass-panel blog-editor-form">
+        <form onSubmit={handleSubmit} className="glass-panel project-editor-form">
           <div className="grid md:grid-cols-2 gap-8 mb-8">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-bold text-muted">Blog Title</label>
-              <input name="title" className="form-input" value={formData.title} onChange={handleInputChange} required />
+              <label className="text-xs font-bold uppercase tracking-wider text-muted">Project Name</label>
+              <input 
+                name="name" 
+                className="form-input" 
+                value={formData.name} 
+                onChange={handleInputChange} 
+                placeholder="Name of your awesome project"
+                required 
+              />
             </div>
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-bold text-muted">Category</label>
-              <select name="category" className="form-input" value={formData.category} onChange={handleInputChange}>
-                <option>SEO Strategy</option>
-                <option>Social Media</option>
-                <option>AI Search</option>
-                <option>Performance Marketing</option>
-              </select>
+              <label className="text-xs font-bold uppercase tracking-wider text-muted">Tech Stack</label>
+              <input 
+                name="technology" 
+                className="form-input" 
+                value={formData.technology} 
+                onChange={handleInputChange} 
+                placeholder="React, Node.js, etc."
+                required 
+              />
             </div>
           </div>
 
           <div className="flex flex-col gap-2 mb-8">
-            <label className="text-sm font-bold text-muted">Excerpt (For the card)</label>
-            <textarea name="excerpt" className="form-input" rows="2" value={formData.excerpt} onChange={handleInputChange} required />
+            <label className="text-xs font-bold uppercase tracking-wider text-muted">Project URL (Optional)</label>
+            <input 
+              name="link" 
+              className="form-input" 
+              value={formData.link} 
+              onChange={handleInputChange} 
+              placeholder="https://your-project.com"
+            />
           </div>
 
           <div className="flex flex-col gap-2 mb-8">
-            <label className="text-sm font-bold text-muted">Featured Image (Main Thumbnail)</label>
-            <div className={`border-2 border-dashed ${preview ? 'border-brand-lime' : 'border-white/10'} rounded-2xl p-6 text-center relative`}>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted">Cover Image</label>
+            <div className={`border-2 border-dashed ${preview ? 'border-brand-lime/50' : 'border-white/10'} rounded-2xl p-8 text-center relative transition-all bg-white/5 hover:bg-white/10`}>
               {preview ? (
-                <div className="relative inline-block w-full max-w-xs">
-                   <img src={preview} alt="preview" className="rounded-xl w-full h-auto" />
-                   <button onClick={() => setPreview(null)} className="absolute -top-3 -right-3 p-1 bg-red-500 rounded-full"><X size={16} /></button>
+                <div className="relative inline-block w-full max-w-sm">
+                   <img src={preview} alt="preview" className="rounded-xl w-full h-auto shadow-2xl" />
+                   <button type="button" onClick={() => {setPreview(null); setFormData(p=>({...p, image:null}))}} className="absolute -top-3 -right-3 p-2 bg-red-500 rounded-full text-white shadow-lg"><X size={16} /></button>
                 </div>
               ) : (
-                <label className="cursor-pointer">
-                  <div className="flex flex-col items-center gap-2">
-                    <ImageIcon size={24} className="text-brand-lime" />
-                    <p className="text-muted text-xs">Upload Main Photo</p>
+                <label className="cursor-pointer block">
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="w-12 h-12 rounded-full bg-brand-lime/10 flex items-center justify-center text-brand-lime">
+                      <ImageIcon size={24} />
+                    </div>
+                    <div>
+                      <p className="text-white font-medium">Click to upload project cover</p>
+                      <p className="text-muted text-xs mt-1">Recommended: high resolution (PNG, JPG)</p>
+                    </div>
                     <input type="file" className="hidden" accept="image/*" onChange={handleFileChange} />
                   </div>
                 </label>
@@ -403,22 +425,30 @@ const BlogEditor = () => {
           </div>
 
           <div className="flex flex-col gap-2 mb-10 editor-container">
-            <label className="text-sm font-bold text-muted mb-2">Rich Post Content (Add images using the toolbar!)</label>
+            <label className="text-xs font-bold uppercase tracking-wider text-muted mb-2">Detailed Project Description</label>
             <ReactQuill 
               theme="snow" 
               ref={quillRef}
-              value={formData.content} 
-              onChange={(content) => setFormData(prev => ({ ...prev, content }))}
+              value={formData.description} 
+              onChange={(description) => setFormData(prev => ({ ...prev, description }))}
               modules={modules}
               formats={['header', 'font', 'bold', 'italic', 'underline', 'strike', 'script', 'code-block', 'color', 'background', 'list', 'indent', 'align', 'link', 'image', 'blockquote', 'table', 'video', 'htmlembed']}
               style={{ background: '#0a0a0a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
             />
           </div>
 
-          <div className="flex gap-4 mb-6 editor-actions">
-            <button type="submit" disabled={loading} className="btn btn-primary flex-1 py-4 text-lg editor-submit-btn">
-              {loading ? (isEditMode ? 'Updating...' : 'Publishing...') : (isEditMode ? 'Update Blog Post' : 'Publish Advanced Blog Post')}
+          <div className="flex gap-4 editor-actions">
+            <button 
+              type="submit" 
+              disabled={loading} 
+              className="btn btn-primary flex-1 py-4 text-base font-bold uppercase tracking-widest editor-submit-btn"
+            >
+              <Save size={18} className="inline mr-2" />
+              {loading ? (isEditMode ? 'Saving Changes...' : 'Saving Project...') : (isEditMode ? 'Update Project' : 'Save Project')}
             </button>
+            <Link to="/admin" className="btn btn-outline py-4 px-8 text-base font-bold uppercase tracking-widest editor-cancel-btn" style={{ borderColor: 'rgba(255,255,255,0.1)' }}>
+              Discard
+            </Link>
           </div>
         </form>
       </div>
@@ -435,11 +465,11 @@ const BlogEditor = () => {
         .ql-toolbar.ql-snow { 
           background: #111 !important; 
           border-color: rgba(255,255,255,0.1) !important; 
-          border-radius: 12px 12px 0 0; 
+          border-radius: 12px 12px 0 top; 
           padding: 0.5rem !important;
           display: flex;
           flex-wrap: wrap;
-          gap: 0.25rem;
+          gap: 8px;
           align-items: center;
         }
         
@@ -449,27 +479,16 @@ const BlogEditor = () => {
           background: #050505;
         }
         
-        /* Toolbar formatting groups */
         .ql-toolbar.ql-snow .ql-formats {
-          margin-right: 0.5rem;
+          margin-right: 15px !important;
           display: flex;
-          gap: 0.25rem;
           align-items: center;
+          gap: 4px;
         }
         
-        /* Toolbar separators */
-        .ql-toolbar.ql-snow::after {
-          content: '';
-          width: 1px;
-          height: 24px;
-          background: rgba(255,255,255,0.05);
-          margin: 0 0.5rem;
-        }
-        
-        /* Toolbar controls */
         .ql-snow .ql-stroke { stroke: #e0e0e0 !important; }
         .ql-snow .ql-fill { fill: #e0e0e0 !important; }
-        .ql-snow .ql-picker { color: #e0e0e0 !important; font-size: 0.9rem; }
+        .ql-snow .ql-picker { color: #e0e0e0 !important; font-size: 0.9rem; margin-right: 10px !important; }
         .ql-snow .ql-picker-label { color: #e0e0e0 !important; }
         
         .ql-snow .ql-picker-options { 
@@ -494,7 +513,6 @@ const BlogEditor = () => {
           background: rgba(200, 255, 0, 0.1) !important;
         }
         
-        /* Button styling */
         .ql-toolbar.ql-snow button,
         .ql-toolbar.ql-snow button:hover {
           width: 28px;
@@ -515,25 +533,11 @@ const BlogEditor = () => {
           border-color: #c8ff00;
         }
         
-        /* Hover effects */
         .ql-snow.ql-toolbar button:hover .ql-stroke,
         .ql-snow.ql-toolbar button.ql-active .ql-stroke { stroke: #c8ff00 !important; }
         
         .ql-snow.ql-toolbar button:hover .ql-fill,
         .ql-snow.ql-toolbar button.ql-active .ql-fill { fill: #c8ff00 !important; }
-        
-        .ql-snow .ql-picker.ql-expanded .ql-picker-label { color: #c8ff00 !important; }
-        
-        /* Custom buttons styling */
-        .ql-toolbar .ql-export-pdf::before,
-        .ql-toolbar .ql-export-word::before,
-        .ql-toolbar .ql-export-html::before,
-        .ql-toolbar .ql-search::before,
-        .ql-toolbar .ql-special-chars::before,
-        .ql-toolbar .ql-hr::before,
-        .ql-toolbar .ql-source::before {
-          font-size: 14px;
-        }
         
         .ql-toolbar .ql-export-pdf,
         .ql-toolbar .ql-export-word,
@@ -542,171 +546,72 @@ const BlogEditor = () => {
         .ql-toolbar .ql-special-chars,
         .ql-toolbar .ql-hr,
         .ql-toolbar .ql-source {
-          font-size: 12px;
-          font-weight: 600;
-          padding: 2px 8px !important;
-          min-width: 40px;
+          width: auto !important;
+          min-width: 50px;
+          padding: 3px 10px !important;
+          background: rgba(255,255,255,0.05) !important;
+          border: 1px solid rgba(255,255,255,0.1) !important;
+          border-radius: 6px !important;
+          font-size: 11px !important;
+          font-weight: 600 !important;
+          color: #e0e0e0 !important;
+          margin: 0 2px !important;
+          transition: all 0.2s ease;
         }
         
-        /* Table styling */
-        .ql-snow table { 
-          border-collapse: collapse; 
-          width: 100%; 
-          margin: 1rem 0; 
-          border: 1px solid rgba(255,255,255,0.1);
+        .ql-toolbar .ql-export-pdf:hover, .ql-toolbar .ql-export-word:hover, .ql-toolbar .ql-export-html:hover, .ql-toolbar .ql-search:hover {
+          background: rgba(200, 255, 0, 0.1) !important;
+          border-color: #c8ff00 !important;
+          color: #c8ff00 !important;
         }
-        .ql-snow table th,
-        .ql-snow table td { 
-          border: 1px solid rgba(255,255,255,0.1); 
-          padding: 0.75rem; 
-          text-align: left;
-        }
-        .ql-snow table th { 
-          background-color: rgba(200, 255, 0, 0.1); 
-          font-weight: bold;
-          color: #c8ff00;
-        }
-        .ql-snow table tr:hover { 
-          background-color: rgba(200, 255, 0, 0.05);
-        }
-        
-        /* Code block styling */
+
         .ql-snow .ql-code-block {
           background-color: #0a0a0a;
           color: #c8ff00;
           padding: 1rem;
           border-radius: 8px;
-          font-family: 'Monaco', 'Courier New', monospace;
-          overflow-x: auto;
           border: 1px solid rgba(200, 255, 0, 0.2);
         }
         
-        .ql-snow code {
-          background-color: rgba(200, 255, 0, 0.1);
-          color: #c8ff00;
-          padding: 2px 6px;
-          border-radius: 4px;
-          font-family: 'Monaco', 'Courier New', monospace;
-          font-size: 0.9em;
-        }
-        
-        /* HTML embed styling */
         .html-embed-container {
           padding: 1rem;
           margin: 1rem 0;
           background: rgba(200, 255, 0, 0.05);
           border: 1px dashed rgba(200, 255, 0, 0.3);
           border-radius: 8px;
-          overflow-x: auto;
         }
         
-        /* Blockquote styling */
         .ql-snow blockquote {
           border-left: 4px solid #c8ff00;
-          padding-left: 1rem;
-          margin: 1rem 0;
-          color: #d0d0d0;
-          font-style: italic;
           background-color: rgba(200, 255, 0, 0.03);
           padding: 1rem;
           border-radius: 4px;
         }
-        
-        /* Link styling */
-        .ql-editor a {
-          color: #c8ff00;
-          text-decoration: underline;
-        }
-        .ql-editor a:hover {
-          color: #e0ff33;
-        }
-        
-        /* List styling */
-        .ql-editor ol, .ql-editor ul {
-          margin-left: 2rem;
-          margin-bottom: 1rem;
-        }
-        
-        .ql-editor li {
-          margin-bottom: 0.5rem;
-        }
-        
-        /* Heading styling */
-        .ql-editor h1 { font-size: 2em; margin: 1rem 0; }
-        .ql-editor h2 { font-size: 1.7em; margin: 0.8rem 0; }
-        .ql-editor h3 { font-size: 1.4em; margin: 0.6rem 0; }
-        .ql-editor h4 { font-size: 1.2em; margin: 0.5rem 0; }
-        .ql-editor h5 { font-size: 1.1em; margin: 0.4rem 0; }
-        .ql-editor h6 { font-size: 1em; margin: 0.3rem 0; }
-        
-        /* Image styling */
-        .ql-editor img {
-          max-width: 100%;
-          height: auto;
-          border-radius: 8px;
-          margin: 1rem 0;
-        }
-        
-        /* Paragraph spacing */
-        .ql-editor p {
-          margin-bottom: 1rem;
-        }
-        
-        /* Scrollbar for toolbar */
-        .ql-toolbar.ql-snow::-webkit-scrollbar {
-          height: 6px;
-        }
-        .ql-toolbar.ql-snow::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.05);
-          border-radius: 3px;
-        }
-        .ql-toolbar.ql-snow::-webkit-scrollbar-thumb {
-          background: rgba(200, 255, 0, 0.3);
-          border-radius: 3px;
-        }
-        .ql-toolbar.ql-snow::-webkit-scrollbar-thumb:hover {
-          background: rgba(200, 255, 0, 0.6);
-        }
-        
-        /* Editor scrollbar */
-        .ql-container::-webkit-scrollbar {
-          width: 8px;
-        }
-        .ql-container::-webkit-scrollbar-track {
-          background: rgba(255,255,255,0.05);
-        }
-        .ql-container::-webkit-scrollbar-thumb {
-          background: rgba(200, 255, 0, 0.3);
-          border-radius: 4px;
-        }
-        .ql-container::-webkit-scrollbar-thumb:hover {
-          background: rgba(200, 255, 0, 0.6);
-        }
 
         /* Responsive Improvements */
         @media (max-width: 768px) {
-          .blog-editor-form {
+          .project-editor-form {
             padding: 1.5rem !important;
           }
           .ql-editor {
             min-height: 350px;
             font-size: 1rem;
           }
-          .heading-lg {
-            font-size: 1.75rem;
+          .heading-md {
+            font-size: 1.5rem;
           }
         }
 
         @media (max-width: 480px) {
-          .blog-editor-form {
+          .project-editor-form {
             padding: 1rem !important;
           }
           .editor-actions {
             flex-direction: column;
           }
-          .editor-submit-btn {
+          .editor-submit-btn, .editor-cancel-btn {
             width: 100%;
-            font-size: 1rem;
+            font-size: 0.9rem;
             padding: 1rem !important;
           }
         }
@@ -715,4 +620,4 @@ const BlogEditor = () => {
   );
 };
 
-export default BlogEditor;
+export default ProjectEditor;

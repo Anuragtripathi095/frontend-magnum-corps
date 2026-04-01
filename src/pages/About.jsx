@@ -1,17 +1,107 @@
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { 
-  ArrowRight, Target, Telescope, ShieldCheck, 
-  Layers, Cpu, Zap, Star
+import {
+  ArrowRight, Target, Telescope, ShieldCheck,
+  Layers, Cpu, Zap, Star, ChevronLeft, ChevronRight, X
 } from 'lucide-react';
+import MarqueeModule from "react-fast-marquee";
+const Marquee = MarqueeModule.default || MarqueeModule;
 import { Reveal, StaggerContainer, TiltCard } from '../components/MotionWrapper';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import whyChooseImg from '../assets/why_choose_graphic.png';
+import yashikaImg from '../assets/yashika_tour.png';
+import drSainiImg from '../assets/dr_saini.png';
+import API_URL from '../config/api';
 import './About.css';
 
+const TESTIMONIALS = [
+  { name: 'Sarah Mitchell', title: 'Marketing Director', text: "The team transformed our brand's online presence with creativity and precision. Their strategic approach resulted in a significant increase in lead generation." },
+  { name: 'John Anderson', title: 'CEO', text: "Most businesses jump into digital marketing with high hopes, but these guys delivered results. They understood our business model and urgency from day one." },
+  { name: 'Emma Davis', title: 'Product Manager', text: "Finally, an agency that values strategy over noise. Their performance marketing campaigns have been a game changer for our Q3 growth." },
+  { name: 'David Chen', title: 'StartUp Founder', text: "Clarity over complexity. That's what Magnus Corps brought to our acquisition funnel. We saw a 40% improvement in conversion within the first month." }
+];
+
+const PROJECT_KEYWORDS = [
+  'ELITE PERFORMANCE', 'ROI-DRIVEN', 'STRATEGY FIRST', 'MARKET DOMINANCE',
+  'CLARITY OVER NOISE', 'PREDICTABLE GROWTH', 'FOUNDER-LEVEL EXECUTION'
+];
+
+
 const About = () => {
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
+  const [isTestimonialsPaused, setIsTestimonialsPaused] = useState(false);
+  const [testimonialDirection, setTestimonialDirection] = useState("left");
+
+  // FAQ State
+  const [faqs, setFaqs] = useState([]);
+  const [faqLoading, setFaqLoading] = useState(true);
+  const [activeFaq, setActiveFaq] = useState(null);
+  const [projects, setProjects] = useState([]);
+  const scrollRef = useRef(null);
+
+  const scrollProjects = (direction) => {
+    if (scrollRef.current) {
+      const scrollAmount = window.innerWidth < 768 ? 330 : 420; // Card width + gap
+      scrollRef.current.scrollBy({
+        left: direction === 'left' ? -scrollAmount : scrollAmount,
+        behavior: 'smooth'
+      });
+    }
+  };
+
+  // Fetch FAQs and Projects on component mount
+  React.useEffect(() => {
+    const fetchFaqs = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/faqs`);
+        const data = await response.json();
+        setFaqs(data.filter(f => f.status === 'Active'));
+      } catch (error) {
+        console.error('Error fetching FAQs:', error);
+      } finally {
+        setFaqLoading(false);
+      }
+    };
+
+    const fetchProjects = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/projects`);
+        const data = await response.json();
+        setProjects(data);
+      } catch (error) {
+        console.error('Error fetching projects:', error);
+      }
+    };
+
+    fetchFaqs();
+    fetchProjects();
+  }, []);
+
+  const nextSlide = () => {
+    setDirection(1);
+    setCurrentIndex((prev) => (prev + 1) % TESTIMONIALS.length);
+  };
+
+  const prevSlide = () => {
+    setDirection(-1);
+    setCurrentIndex((prev) => (prev - 1 + TESTIMONIALS.length) % TESTIMONIALS.length);
+  };
+
+  const nextProject = useCallback(() => {
+    if (projects.length === 0) return;
+    setProjectIndex((prev) => (prev + 1) % projects.length);
+  }, [projects]);
+
+  const prevProject = useCallback(() => {
+    if (projects.length === 0) return;
+    setProjectIndex((prev) => (prev - 1 + projects.length) % projects.length);
+  }, [projects]);
+
+  // No manual timer needed for infinite fast-marquee
   return (
     <div className="about-page page-wrapper">
-      
+
       {/* 1. HEADER HERO */}
       <header className="about-header">
         <div className="container overflow-hidden">
@@ -21,8 +111,8 @@ const About = () => {
             transition={{ duration: 0.8, ease: [0.25, 1, 0.5, 1] }}
           >
             <div className="breadcrumb">
-              <Link to="/">Home</Link> 
-              <span className="sep">*</span> 
+              <Link to="/">Home</Link>
+              <span className="sep">*</span>
               <span>About Us</span>
             </div>
             <h1 className="about-header-title">
@@ -53,7 +143,7 @@ const About = () => {
         <div className="silver-globe-container">
           <div className="silver-globe float-slow"></div>
         </div>
-        
+
         <div className="container">
           <div className="magnus-grid cols-50-50 align-center gap-16">
             <motion.div
@@ -123,7 +213,8 @@ const About = () => {
             {[
               { icon: <Target size={30} />, title: 'Our Mission', desc: 'To empower startups and established businesses with clarity and predictable growth by building high-performing digital marketing systems that turn visitors into loyal customers.' },
               { icon: <Telescope size={30} />, title: 'Our Vision', desc: 'To be the most trusted performance-first digital marketing partner in India, known for results over vanity metrics and strategy over noise.' },
-              { icon: <ShieldCheck size={30} />, title: 'Core Values', desc: (
+              {
+                icon: <ShieldCheck size={30} />, title: 'Core Values', desc: (
                   <ul className="value-list">
                     <li><span className="dot"></span> Clarity over complexity</li>
                     <li><span className="dot"></span> Results over vanity metrics</li>
@@ -157,7 +248,7 @@ const About = () => {
         {/* Abstract floating lights */}
         <div className="absolute top-1/4 left-0 w-96 h-96 bg-brand-lime/10 rounded-full blur-[120px] pointer-events-none"></div>
         <div className="absolute bottom-1/4 right-0 w-96 h-96 bg-brand-lime/5 rounded-full blur-[120px] pointer-events-none"></div>
-        
+
         <div className="container relative z-10">
           {/* Header Row */}
           <div className="flex flex-col lg:flex-row mb-16 items-start" style={{ gap: '4rem' }}>
@@ -219,13 +310,13 @@ const About = () => {
               transition={{ duration: 0.9, ease: [0.25, 1, 0.5, 1] }}
             >
               <div className="why-choose-img-wrapper" style={{ width: '100%', maxWidth: '550px' }}>
-                 <div className="why-choose-img-overlay"></div>
-                 <img 
-                   src={whyChooseImg} 
-                   alt="Business growth and momentum" 
-                   className="why-choose-graphic" 
-                 />
-                 <div className="why-choose-img-inner-shadow"></div>
+                <div className="why-choose-img-overlay"></div>
+                <img
+                  src={whyChooseImg}
+                  alt="Business growth and momentum"
+                  className="why-choose-graphic"
+                />
+                <div className="why-choose-img-inner-shadow"></div>
               </div>
             </motion.div>
           </div>
@@ -242,50 +333,279 @@ const About = () => {
             viewport={{ once: true, margin: '-80px' }}
             transition={{ duration: 0.7, ease: [0.25, 1, 0.5, 1] }}
           >
-             <h2 className="heading-lg mb-4">What Our Clients Say</h2>
-             <p className="text-muted">Real Growth. Real Stories. Our work speaks for itself through the success of our partners.</p>
+            <h2 className="heading-lg mb-4">What Our Clients Say</h2>
+            <p className="text-muted">Real Growth. Real Stories. Our work speaks for itself through the success of our partners.</p>
           </motion.div>
-          
-          <motion.div
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.7, delay: 0.2, ease: [0.25, 1, 0.5, 1] }}
-          >
-            <div className="testimonial-slider-container">
-              <motion.div 
-                className="testimonial-slider-track"
-                animate={{ x: [0, -1000] }}
-                transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+
+          <div className="project-carousel-wrapper relative mx-auto w-full max-w-[1400px] px-12 sm:px-16 md:px-24">
+            {/* NAVIGATION BUTTONS */}
+            <button
+              className="project-nav-btn left"
+              onMouseEnter={() => setIsTestimonialsPaused(true)}
+              onMouseLeave={() => setIsTestimonialsPaused(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTestimonialDirection("right");
+              }}
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            <div className="testimonial-slider-container overflow-hidden py-8 w-full"
+              onMouseEnter={() => setIsTestimonialsPaused(true)}
+              onMouseLeave={() => setIsTestimonialsPaused(false)}>
+              <Marquee
+                speed={40}
+                direction={testimonialDirection}
+                pauseOnHover={true}
+                play={!isTestimonialsPaused}
+                gradient={true}
+                gradientColor={[0, 0, 0]}
+                gradientWidth={100}
+                className="testimonial-marquee-track"
+                autoFill={true}
               >
-                {[...Array(4)].map((_, group) => (
-                  <div key={group} className="flex gap-8">
-                    {[
-                      { name: 'Sarah Mitchell', title: 'Marketing Director', text: "The team transformed our brand's online presence with creativity and precision. Their strategic approach resulted in a significant increase in lead generation." },
-                      { name: 'John Anderson', title: 'CEO', text: "Most businesses jump into digital marketing with high hopes, but these guys delivered results. They understood our business model and urgency from day one." },
-                      { name: 'Emma Davis', title: 'Product Manager', text: "Finally, an agency that values strategy over noise. Their performance marketing campaigns have been a game changer for our Q3 growth." }
-                    ].map((t, idx) => (
-                      <div key={idx} className="testimonial-slide glass-panel">
-                        <div className="stars mb-4" style={{ color: 'var(--color-brand-lime)' }}>
-                          <Star fill="currentColor" size={16} /><Star fill="currentColor" size={16} /><Star fill="currentColor" size={16} /><Star fill="currentColor" size={16} /><Star fill="currentColor" size={16} />
-                        </div>
-                        <p className="text-lg italic mb-6">"{t.text}"</p>
-                        <div>
-                          <h4 className="font-bold text-white">{t.name}</h4>
-                          <p className="text-sm text-brand-lime">{t.title}</p>
-                        </div>
-                      </div>
-                    ))}
+                {/* Double the testimonials to create a seamless loop */}
+                {[...TESTIMONIALS, ...TESTIMONIALS].map((t, idx) => (
+                  <div key={idx} className="testimonial-slide glass-panel mx-4" style={{ width: '450px', flexShrink: 0 }}>
+                    <div className="stars mb-4" style={{ color: 'var(--color-brand-lime)' }}>
+                      <Star fill="currentColor" size={16} /><Star fill="currentColor" size={16} /><Star fill="currentColor" size={16} /><Star fill="currentColor" size={16} /><Star fill="currentColor" size={16} />
+                    </div>
+                    <p className="text-lg italic mb-6">"{t.text}"</p>
+                    <div>
+                      <h4 className="font-bold text-white">{t.name}</h4>
+                      <p className="text-sm text-brand-lime">{t.title}</p>
+                    </div>
                   </div>
                 ))}
-              </motion.div>
+              </Marquee>
             </div>
-          </motion.div>
+
+            <button
+              className="project-nav-btn right"
+              onMouseEnter={() => setIsTestimonialsPaused(true)}
+              onMouseLeave={() => setIsTestimonialsPaused(false)}
+              onClick={(e) => {
+                e.stopPropagation();
+                setTestimonialDirection("left");
+              }}
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
         </div>
       </section>
 
+      {/* 4.1 PROJECT PORTFOLIO SECTION */}
+      <section className="section bg-[#050507] overflow-hidden" style={{ padding: '6rem 0' }}>
+        <div className="container">
+          <Reveal>
+            <div className="text-center mb-24">
+              <span className="text-brand-lime font-bold uppercase tracking-widest text-sm">* IMPACT PORTFOLIO—</span>
+              <h2 className="heading-xl mt-6">Proof of <span className="text-brand-lime">Performance</span></h2>
+              <p className="text-xl text-muted max-w-4xl mx-auto mt-6 leading-relaxed">We don't just build websites; we build systems that grow startups and established brands predictably.</p>
+            </div>
+          </Reveal>
+        </div>
+
+        {/* KEYWORD TICKER (Marquee) */}
+        <div className="project-keyword-ticker mb-16 overflow-hidden">
+          <div className="project-keyword-track flex items-center">
+            {[...PROJECT_KEYWORDS, ...PROJECT_KEYWORDS, ...PROJECT_KEYWORDS].map((word, i) => (
+              <div key={i} className="keyword-item whitespace-nowrap flex items-center">
+                <span>{word}</span>
+                <b>*</b>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* HORIZONTAL PROJECT CARDS - SMART CAROUSEL */}
+        <div className="project-slider-section-inner relative group">
+          <div className="project-carousel-wrapper relative mx-auto w-full max-w-[1400px]">
+            {/* NAVIGATION BUTTONS */}
+            <button
+              className="project-nav-btn left"
+              aria-label="Previous Project"
+              onClick={() => scrollProjects('left')}
+            >
+              <ChevronLeft size={24} />
+            </button>
+
+            <div
+              className="project-slider-container"
+              ref={scrollRef}
+            >
+              <div className="project-stepped-track">
+                {projects.map((project, i) => {
+                  let imgSrc = yashikaImg;
+                  if (project.imagePath) {
+                    if (project.imagePath.startsWith('/src/')) imgSrc = project.imagePath;
+                    else if (project.imagePath.startsWith('http')) imgSrc = project.imagePath;
+                    else imgSrc = `${API_URL}${project.imagePath}`;
+                  }
+
+                  return (
+                    <div
+                      key={i}
+                      className="project-portfolio-card"
+                    >
+                      <div className="project-card-inner">
+                        <div className="project-img-frame">
+                          <img src={imgSrc} alt={project.name} className="project-main-img" />
+                        </div>
+                        <div className="project-content-below text-center">
+                          <span className="text-brand-lime font-bold tracking-widest text-[10px] uppercase mb-2 block">{project.technology}</span>
+                          <h3 className="project-title-large">{project.name}</h3>
+                          <p className="text-white/50 text-sm mt-3 leading-relaxed line-clamp-2 px-4">{project.description}</p>
+                          <div className="mt-8">
+                            {project.link && (
+                              <a href={project.link} target="_blank" rel="noopener noreferrer" className="project-view-btn">
+                                <span>View Project</span>
+                                <ArrowRight size={16} />
+                              </a>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <button
+              className="project-nav-btn right"
+              aria-label="Next Project"
+              onClick={() => scrollProjects('right')}
+            >
+              <ChevronRight size={24} />
+            </button>
+          </div>
+        </div>
+      </section>
+
+      {/* 4.1 FAQ SECTION (Expertise Hub) */}
+      <section className="section faq-section-wrapper overflow-hidden">
+        <div className="container relative z-10">
+          <div className="faq-section-separator top"></div>
+
+          <div className="text-center mb-20">
+            <Reveal>
+              <span className="text-brand-lime font-bold uppercase tracking-widest text-sm">* EXPERTISE HUB & FAQ—</span>
+              <h2 className="heading-xl mt-6">Still Have <span className="text-brand-lime">Questions?</span></h2>
+              <p className="text-xl text-muted max-w-4xl mx-auto mt-6 leading-relaxed">Everything you need to know about how Magnus Corps drives predictable growth for your startup.</p>
+            </Reveal>
+          </div>
+
+          <div className="max-w-7xl mx-auto">
+            {/* Above Text Animation & Visual Grid */}
+            <div className="magnus-grid cols-60-40 gap-16 align-center mb-24">
+              <Reveal delay={0.1}>
+                <div className="faq-context-above text-left">
+                  <h3 className="text-4xl font-bold mb-6"><span className="green-shimmer">Clarity is our first priority.</span></h3>
+                  <p className="text-xl text-muted leading-relaxed">
+                    We believe that marketing shouldn't be a black hole. Whether you're curious about our ROI timelines or our founder-level execution, we've broken down the most common questions from startups below.
+                  </p>
+                  <p className="text-lg text-muted mt-6 italic">
+                    "Still have questions? Our expertise hub is built to give founders the absolute transparent answers they deserve."
+                  </p>
+                </div>
+              </Reveal>
+
+              <div className="faq-column-right">
+                <Reveal delay={0.3}>
+                  <div className="faq-visual-wrapper">
+                    <div className="faq-img-glow"></div>
+                    <img
+                      src="/assets/magnus-faq-visual.png"
+                      alt="Magnus Corps FAQ Visual"
+                      className="img-magnus-arch faq-main-img"
+                    />
+                    <div className="faq-floating-badge glass-panel">
+                      <span className="text-brand-lime font-bold">99%</span>
+                      <p className="text-xs text-muted">Client Clarity</p>
+                    </div>
+                  </div>
+                </Reveal>
+              </div>
+            </div>
+
+            {/* Bridge Text Section */}
+            <Reveal delay={0.4}>
+              <div className="faq-bridge-text text-center mb-16">
+                <span className="text-brand-lime font-bold uppercase tracking-[0.3em] text-xs">* SELECT A TOPIC TO LEARN MORE—</span>
+              </div>
+            </Reveal>
+
+            {/* Centered FAQ Accordion */}
+            <div className="max-w-7xl mx-auto">
+              {faqLoading ? (
+                <div className="flex flex-col gap-4">
+                  {[...Array(4)].map((_, i) => (
+                    <div key={i} className="faq-skeleton animate-pulse h-20 bg-white/5 rounded-2xl"></div>
+                  ))}
+                </div>
+              ) : faqs.length > 0 ? (
+                <div className="faq-scroll-box glass-panel-deep">
+                  <div className="faq-accordion">
+                    {faqs.map((faq, index) => (
+                      <motion.div
+                        key={faq._id}
+                        className={`faq-item glass-panel ${activeFaq === index ? 'active' : ''}`}
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        transition={{ delay: index * 0.1 }}
+                      >
+                        <button
+                          className="faq-question"
+                          onClick={() => setActiveFaq(activeFaq === index ? null : index)}
+                        >
+                          <span className="question-text">{faq.question}</span>
+                          <div className="faq-icon-wrapper">
+                            {activeFaq === index ? <X size={20} /> : <ChevronRight size={20} />}
+                          </div>
+                        </button>
+                        <motion.div
+                          className="faq-answer"
+                          initial={false}
+                          animate={{ height: activeFaq === index ? 'auto' : 0, opacity: activeFaq === index ? 1 : 0 }}
+                          transition={{ duration: 0.3, ease: 'easeInOut' }}
+                          style={{ overflow: 'hidden' }}
+                        >
+                          <div className="faq-answer-inner pt-2 pb-8 px-8 text-muted leading-relaxed" dangerouslySetInnerHTML={{ __html: faq.answer }}>
+                          </div>
+                        </motion.div>
+                      </motion.div>
+                    ))}
+                  </div>
+                </div>
+              ) : (
+                <p className="text-center text-muted">No FAQs available at the moment. Please contact us for more info.</p>
+              )}
+            </div>
+
+            {/* Below Text Animation */}
+            <Reveal delay={0.2}>
+              <div className="faq-context-below mt-20 text-center">
+                <div className="inline-block p-1 rounded-full bg-brand-lime/10 border border-brand-lime/20 mb-6 px-6">
+                  <span className="text-brand-lime font-bold text-sm tracking-widest uppercase">The Bottom Line →</span>
+                </div>
+                <h3 className="text-2xl font-bold mb-4">We build systems that <span className="text-brand-lime">grow predictably.</span></h3>
+                <p className="text-muted max-w-2xl mx-auto">
+                  If your question isn't listed here, it just means your business has specific needs that deserve a one-on-one strategy call. Let's find your fastest path to customers together.
+                </p>
+              </div>
+            </Reveal>
+          </div>
+
+          <div className="faq-section-separator bottom mt-24"></div>
+        </div>
+      </section >
+
       {/* 5. FINAL CTA SECTION */}
-      <section className="section text-center relative z-10">
+      < section className="section text-center relative z-10" >
         <div className="container">
           <motion.div
             initial={{ opacity: 0, y: 50, scale: 0.95 }}
@@ -302,9 +622,9 @@ const About = () => {
             </div>
           </motion.div>
         </div>
-      </section>
+      </section >
 
-    </div>
+    </div >
   );
 };
 

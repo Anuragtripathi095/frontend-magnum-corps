@@ -15,6 +15,9 @@ const BlogPost = () => {
   const [loading, setLoading] = useState(true);
   const [isDesktop, setIsDesktop] = useState(() => window.innerWidth >= 1025);
   const contentRef = useRef(null);
+  const [newsletterEmail, setNewsletterEmail] = useState('');
+  const [subStatus, setSubStatus] = useState('idle'); // idle, loading, success, error
+  const [subMessage, setSubMessage] = useState('');
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 1025px)');
@@ -91,6 +94,33 @@ const BlogPost = () => {
       h.setAttribute('id', `heading-${i}`);
     });
     return DOMPurify.sanitize(doc.body.innerHTML);
+  };
+
+  const handleNewsletterSubmit = async (e) => {
+    if (e) e.preventDefault();
+    if (!newsletterEmail) return;
+    
+    setSubStatus('loading');
+    try {
+      const res = await fetch(`${API_URL}/api/newsletter`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: newsletterEmail })
+      });
+      const data = await res.json();
+      
+      if (res.ok) {
+        setSubStatus('success');
+        setSubMessage('Welcome to the Gyaan Tribe!');
+        setNewsletterEmail('');
+      } else {
+        setSubStatus('error');
+        setSubMessage(data.message || 'Something went wrong.');
+      }
+    } catch (err) {
+      setSubStatus('error');
+      setSubMessage('Network error. Please try again.');
+    }
   };
 
   if (loading) return <div className="loading-state">Loading...</div>;
@@ -229,12 +259,35 @@ const BlogPost = () => {
             <div className="glass-panel p-12 text-center" style={{ borderColor: 'var(--color-brand-lime)' }}>
                <h2 className="heading-md mb-6">Stay for the Gyaan, Scale with Magnus.</h2>
                <p className="text-muted mb-8 max-w-xl mx-auto">Get absolute SEO and Performance Marketing insights delivered to your inbox weekly.</p>
-               <div className="max-w-md mx-auto flex gap-4">
-                  <input className="form-input" placeholder="Work Email" />
+               <form className="max-w-md mx-auto flex gap-4" onSubmit={handleNewsletterSubmit}>
+                  <input 
+                    className="form-input" 
+                    placeholder="Work Email" 
+                    type="email"
+                    required
+                    value={newsletterEmail}
+                    onChange={(e) => setNewsletterEmail(e.target.value)}
+                    disabled={subStatus === 'loading'}
+                  />
                   <Magnetic>
-                    <button className="btn btn-primary px-8 h-full">Join Now</button>
+                    <button 
+                      type="submit"
+                      className={`btn btn-primary px-8 h-full ${subStatus === 'loading' ? 'opacity-70 cursor-not-allowed' : ''}`}
+                      disabled={subStatus === 'loading'}
+                    >
+                      {subStatus === 'loading' ? 'Joining...' : 'Join Now'}
+                    </button>
                   </Magnetic>
-               </div>
+               </form>
+               {subStatus !== 'idle' && (
+                 <motion.p 
+                   initial={{ opacity: 0, y: 10 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   className={`mt-4 text-sm font-medium ${subStatus === 'success' ? 'text-brand-lime' : 'text-red-400'}`}
+                 >
+                   {subMessage}
+                 </motion.p>
+               )}
             </div>
          </div>
       </section>
