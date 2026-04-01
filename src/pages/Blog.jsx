@@ -324,7 +324,7 @@ const Blog = () => {
       </section>
 
       {/* 3. NEWSLETTER CTA */}
-      <section className="section bg-black/40">
+      <section className="section bg-black-40">
         <div className="container">
           <div className="glass-panel text-center py-16" style={{ border: '1px solid var(--color-brand-lime)' }}>
              <h2 className="heading-md mb-6">Stay ahead of the curve.</h2>

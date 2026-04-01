@@ -370,7 +370,7 @@ const Home = () => {
       </section>
 
       {/* 2.1 CLEAR DIRECTION SECTION */}
-      <section className="section overflow-hidden bg-black/40">
+      <section className="section overflow-hidden bg-black-40">
         <div className="container">
           <div className="magnus-grid cols-50-50 align-center">
             <motion.div

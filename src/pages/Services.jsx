@@ -112,7 +112,7 @@ const Services = () => {
       </header>
 
       {/* 2. SERVICES GRID */}
-      <section className="section bg-black/40" style={{ paddingBottom: 0 }}>
+      <section className="section bg-black-40" style={{ paddingBottom: 0 }}>
         <div className="container">
           <motion.div
             className="text-center mb-16 max-w-2xl mx-auto"

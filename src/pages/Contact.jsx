@@ -71,7 +71,7 @@ const Contact = () => {
         </div>
       </header>
 
-      <section className="section bg-black/40">
+      <section className="section bg-black-40">
         <div className="container">
           <div className="magnus-grid cols-40-60 gap-12">
             
@@ -171,7 +171,7 @@ const Contact = () => {
                     </div>
 
                     {status.state !== 'idle' && status.state !== 'loading' && (
-                      <div className={`status-message flex gap-2 items-center p-4 rounded-lg bg-black/40 text-brand-lime border border-brand-lime/20 mb-4`}>
+                      <div className={`status-message flex gap-2 items-center p-4 rounded-lg bg-black-40 text-brand-lime border border-brand-lime/20 mb-4`}>
                         {status.state === 'success' ? <CheckCircle2 size={18} /> : <AlertCircle size={18} />}
                         {status.message}
                       </div>
